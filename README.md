@@ -6,10 +6,11 @@ Full specification at specification.pdf
 
 Subset 2 not implemented
 
+Basic tests done with scripts
 
 ## Running Script Commands
 ```
 chmod +x *
 ./command
 ```
-Basic tests done with scripts
+
