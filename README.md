@@ -7,7 +7,7 @@ Full specification at specification.pdf
 Subset 2 not implemented
 
 
-Running Script Commands
+## Running Script Commands
 ```
 chmod +x *
 ./command
