@@ -1,0 +1,94 @@
+#!/bin/dash
+#Error checking for the existance of a legit directory
+if ! test -d .legit
+then
+        echo "legit-show: error: no .legit directory containing legit repository exists"
+        exit 1
+fi  
+
+#getting number of commits
+cd ./.legit/commits
+nocommits=$(ls -l| wc -l)
+nocommits=$((nocommits-2))
+cd ../..
+
+#Error to print if there are no commits yet
+if test $nocommits -eq 0
+then
+    echo "legit-rm: error: your repository does not have any commits yet"
+    exit 1
+fi
+
+#checking usage of legit-show command
+if ! test $# -eq 1
+then
+    echo "usage: legit-show <commit>:<filename>"
+    exit 1    
+fi
+
+#if there is no : in the argument, print out invalid object
+echo $1 | egrep ^.*:.*$ > /dev/null 2>&1
+if ! test "$?" -eq 0
+then
+    echo "legit-show: error: invalid object $1"
+    exit 1
+fi
+
+#getting commit number required and filename supplied in the argument
+commitneeded=$(echo $1 | cut -d ':' -f1 | sed 's\ \\g')
+filename=$(echo $1 | cut -d ':' -f2 | sed 's\ \\g')
+
+#if no commitnumber specified, indexorcommit will be 0
+indexorcommit=$(echo -n $commitneeded | wc -c)
+
+#Checking if the commit number is valid
+echo "$commitneeded" | egrep ^[0-9]*$ > /dev/null 2>&1
+if ! test "$?" -eq 0
+then
+    echo "legit-show: error: unknown commit '$commitneeded'"
+    exit 1
+fi
+
+#Checking if filename is valid
+echo "$filename" | egrep -v '^[A-Za-z0-9._-]+$' > /dev/null 2>&1
+
+if test "$?" -eq 0
+then
+    echo "legit-show: error: invalid filename '$filename'"
+    exit 1
+fi 
+
+#If the required output is from index
+if test $indexorcommit -eq 0
+then
+    cd .legit/index
+    if ! test -f "$filename"
+    then
+        echo "legit-show: error: '$filename' not found in index"
+        exit 1   
+    fi
+    cat "$filename"
+    cd ../.. 
+#If the required output is from a commit directory         
+else
+    cd .legit/commits
+    nocommits=$(ls -l| wc -l)
+    nocommits=$((nocommits-2))
+    #if supplied commitnumber exceeds, should print out prompt
+    if ! test $commitneeded -lt $nocommits
+    then
+        echo "legit-show: error: unknown commit '$commitneeded'"
+        exit 1
+    fi
+    #change to dir and get the file to show
+    cd "commit-$commitneeded"
+    if ! test -f "$filename"
+    then
+        echo "legit-show: error: '$filename' not found in commit $commitneeded"
+        exit 1   
+    fi
+    cat "$filename"
+    cd ../../..    
+fi
+
+

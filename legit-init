@@ -1,0 +1,26 @@
+#!/bin/dash
+
+#If usage of legit-init command is incorrect
+if test $# -ne 0 
+then
+    echo "usage: legit-init"
+    exit 1
+fi
+
+#Error checking for existance of a legit directory
+if test -d .legit
+then 
+    echo "legit-init: error: .legit already exists"
+    exit 1
+fi
+
+#If no errors occur. Make a legit repository with index and commit directories.    
+mkdir .legit
+cd .legit
+mkdir index
+mkdir commits
+cd commits
+touch messages.txt
+cd ../..
+echo "Initialized empty legit repository in .legit"
+exit 0

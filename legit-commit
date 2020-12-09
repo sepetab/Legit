@@ -1,0 +1,109 @@
+#!/bin/dash
+
+#Error checking for the existance of a legit directory
+if ! test -d .legit
+then
+        echo "legit-commit: error: no .legit directory containing legit repository exists"
+        exit 1
+fi    
+
+#This checks the usage of the legit-commit command
+if [ "$#" -gt 3 -o "$#" -lt 2 ] 
+then
+    echo "usage: legit-commit [-a] -m commit-message"
+    exit 1
+fi 
+#The code below accomodates and checks the -a function and modifies index   
+if [ "$#" -eq 3 ]
+then
+    if [ "$1" != "-a" ]
+    then
+        echo "usage: legit-commit [-a] -m commit-message"
+        exit 1
+    elif [ "$2" != "-m" ]
+    then
+        echo "usage: legit-commit [-a] -m commit-message"
+        exit 1
+    fi
+    #If all syntax pass above, it loops through the current directory and adds
+    #everything that is shared by the index and current directory to the index.
+    for entry in *
+    do
+        if test -f "$entry"
+        then
+            if test -f ./.legit/index/"$entry"
+            then
+                sh legit-add "$entry"
+            fi       
+        fi
+    done
+    #message variable stores the message inputted by user. 
+    message="$3"               
+fi
+
+#checks the 2 arguments given. 
+if [ "$#" -eq 2 ]
+then
+    if [ "$1" != "-m" ]
+    then
+        echo "usage: legit-commit [-a] -m commit-message"
+        exit 1
+    fi
+    message="$2"   
+fi
+
+#Checks if there is nothing to commit by diffing the latest commit
+#directory and the index
+cd ./.legit/commits
+prevcommit=$(ls -l| wc -l)
+prevcommit=$((prevcommit-3))
+#echo "$prevcommit is it negative??!"
+cd ../..
+if test $prevcommit -ge 0 
+then
+    diff "./.legit/index" "./.legit/commits/commit-$prevcommit" > /dev/null
+    if test "$?" -eq 0
+    then
+        echo "nothing to commit"
+        exit 1
+    fi 
+
+fi
+
+#If there are no commits and the index is empty, prompt printed
+#The -z command to check if a directory is emty is from STACK OVERFLOW
+if [ -z "$(ls -A ./.legit/index)" -a $prevcommit -eq -1  ]   
+then
+    echo "nothing to commit"
+    exit 1
+fi
+
+#The code below copies everything from the index to the commits
+#gets commit number through ls and wcing the commits directory.
+cd ./.legit/commits
+nocommits=$(ls -l| wc -l)
+nocommits=$((nocommits-2))
+mkdir "commit-$nocommits"
+cd ..
+cp -a index/. commits/commit-"$nocommits"
+cd ..
+echo "Committed as commit $nocommits"
+
+
+#This is to store the messages along with the commit number in 
+#.legit/commits/messages.txt for legit-log
+
+#removing all " ' from the message if its at start or end
+message=$(echo "$message" | sed s/^[\"\']// | sed s/[\"\']$//)
+cd ./.legit/commits
+#updates messages.txt through message variable.
+newline_include_check=$(cat messages.txt|wc -l)
+if test $newline_include_check -eq 0
+then
+    echo "$nocommits "$message"" > messages.txt    
+else
+    echo "$nocommits "$message"
+$(cat messages.txt)" > messages.txt
+fi    
+
+

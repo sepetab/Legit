@@ -1,0 +1,55 @@
+#!/bin/dash
+
+#Error checking for the existance of a legit directory
+if ! test -d .legit
+then
+    echo "legit-add: error: no .legit directory containing legit repository exists"
+    exit 1
+fi
+
+#checks the usage of legit-add    
+if test $# -eq 0 
+then
+    echo "usage: legit-add <filenames>"
+    exit 1
+fi
+
+#Loops through each file in argument
+for file in "$@"
+do
+    #checks filename validity
+    echo "$file" | egrep -v '^[A-Za-z0-9._-]+$' > /dev/null 2>&1
+    if test "$?" -eq 0
+    then
+        echo "legit-add: error: invalid filename '$file'"
+        exit 1
+    fi 
+    #If the file dosent exist in the directory, it looks at other cases.
+    if ! test -f "$file"
+    then 
+        #if it exists in the index. It updates the index by deleting the file.
+        if test -f ./.legit/index/"$file"
+        then
+            rm ./.legit/index/"$file"
+            exit 0
+        else
+            #if its a directory, then prints out irregular file prompt
+            if test -d "$file"
+            then
+                echo "legit-add: error: '$file' is not a regular file"
+                exit 1
+            fi
+            #or it couldnt open it
+            echo "legit-add: error: can not open '$file'"
+            exit 1
+        fi    
+    fi 
+done
+
+#If all the above errors didnt occur, it adds the file to index by
+#copying from current directory.
+for args in "$@"
+do
+cp "$args" ./.legit/index  
+done
+

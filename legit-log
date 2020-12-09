@@ -1,0 +1,38 @@
+#!/bin/dash
+
+#Error checking for the existance of a legit directory
+if ! test -d .legit
+then
+        echo "legit-log: error: no .legit directory containing legit repository exists"
+        exit 1
+fi
+
+#getting number of commits
+cd ./.legit/commits
+nocommits=$(ls -l| wc -l)
+nocommits=$((nocommits-2))
+cd ../..
+
+#Error to print if there are no commits yet
+if test $nocommits -eq 0
+then
+    echo "legit-log: error: your repository does not have any commits yet"
+    exit 1
+fi    
+#If usage of legit-log command is incorrect
+if test $# -ne 0 
+then
+    echo "usage: legit-log"
+    exit 1
+fi
+
+#If no above errors occur, go to directory and print messages.txt
+cd ./.legit/commits
+cat messages.txt
+cd ../..
+exit 0
+
+
+
+
+

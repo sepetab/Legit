@@ -1,0 +1,139 @@
+#!/bin/dash
+
+#Error checking for the existance of a legit directory
+if ! test -d .legit
+then
+    echo "legit-rm: error: no .legit directory containing legit repository exists"
+    exit 1
+fi
+
+#getting number of commits
+cd ./.legit/commits
+nocommits=$(ls -l| wc -l)
+nocommits=$((nocommits-2))
+cd ../..
+
+#Error to print if there are no commits yet
+if test $nocommits -eq 0
+then
+    echo "legit-rm: error: your repository does not have any commits yet"
+    exit 1
+fi
+
+#checking usage of legit-rm command      
+if test $# -eq 0
+then
+    echo "usage: legit-rm [--force] [--cached] <filenames>"
+    exit 1
+fi 
+
+#updates cache and force from 0 to 1 if force or cache option is mentioned
+cache=0
+force=0
+for args in "$@"
+do
+    if test "$args" = "--cached"
+    then
+        cache=1
+    fi
+    
+    if test "$args" = "--force"
+    then
+        force=1
+    fi 
+done
+
+#loops through files supplied in command line argument.
+for file in "$@"
+do
+    #ignores and continues if its the option specified
+    if test "$file" = "--cached" -o "$file" = "--force"
+    then
+        continue
+    fi
+    
+    #Checks if the file is invalid
+    echo "$file" | egrep -v '^[A-Za-z0-9._-]+$' > /dev/null 2>&1
+    if test "$?" -eq 0
+    then
+        echo "legit-rm: error: invalid filename '$file'"
+        exit 1
+    fi 
+    
+    #Prints error if the file supplied isnt in the index directory
+    cd .legit/index
+    if ! test -f "$file"
+    then
+        echo "legit-rm: error: '$file' is not in the legit repository"
+        exit 1
+    fi
+    cd ../..
+    
+    
+    index_dir=0
+    index_com=0
+    diff ./.legit/index/"$file" ./"$file" > /dev/null 2>&1
+    if ! test "$?" -eq 0
+    then
+        #updates to one if the file in the index and current dir have differnt copies of the same file
+        index_dir=1
+    fi
+         
+    latestcommit=$((nocommits-1))
+    
+    diff ./.legit/index/"$file" ./.legit/commits/"commit-$latestcommit"/"$file" > /dev/null 2>&1
+    if ! test "$?" -eq 0
+    then
+        #updates to 1 if the latest commit and index have differnt copies of the same file
+        index_com=1
+    fi 
+    #force overides the below error messages
+    if test $force -eq 0
+    then
+         #all three different: index,dir and current directory.
+        if [ $index_com -eq 1 -a $index_dir -eq 1 ]
+        then
+            echo "legit-rm: error: '$file' in index is different to both working file and repository"
+            exit 1
+        #index and commit different 
+        elif [ $index_com -eq 1 ]
+        then
+            if test $cache -eq 0
+            then
+                echo "legit-rm: error: '$file' has changes staged in the index" 
+                exit 1
+            fi
+        #index and current directory different          
+        elif [ $index_dir -eq 1 ]
+        then 
+            if test $cache -eq 0
+            then
+                echo "legit-rm: error: '$file' in repository is different to working file" 
+                exit 1
+            fi    
+        fi 
+    fi            
+    
+done
+
+#if no errors were detected uptop, loop through all files again
+for rem in "$@"
+do
+    #ignore --cache and force options
+    if test "$rem" = "--cached" -o "$rem" = "--force"
+    then
+        continue
+    fi
+    
+    #only remove directory file if cache is not mentioned
+    if test $cache -eq 0
+    then
+        rm "$rem" > /dev/null 2>&1
+    fi
+    #remove index file    
+    cd ./.legit/index
+    rm "$rem"
+    cd ../..
+done
+
+

@@ -1,0 +1,16 @@
+Date	   Start	 Stop	 Activity	           Comments
+27/06/19   4PM	     5PM	coding	               implemented legit-init
+27/06/19   8PM	     9PM	coding&debugging       implemented legit-add and debugged legit-init 
+28/06/19   2PM       4PM    coding&debugging       implemented legit-commit but havent checked diff yet. fixed some bugs in legit-add
+30/06/19  12PM       5PM    coding&debugging       Finished legit-show and degugged legit-commit. Still need filename checking completed in legit-show.
+01/07/19  3PM        4PM    coding                 Implemented -a check for legit-commit. Havent implemented functionality. Just error checking.
+03/07/19  3PM        3:30PM  coding                Implemented functionality for -a commit.
+04/07/19  2PM        4PM     debugging             debugged a bug in -a option in commit.
+04/07/19  8PM        10PM    coding                Implemented errors of RM
+05/07/19  2Pm        4PM     debugging&coding      added error functions to legit-add and finished all legit-rm.
+10/07/19  2PM        4PM     coding                added legit-status
+11/07/19  2PM        4PM     debugging             debugged legit-status and added alphebetical sorting to pass basic autotest
+12/07/19  2PM        4PM     testing               wrote 2 test scripts
+12/07/19  8PM        12PM    testing               wrote 3 more scripts
+13/07/19  12AM       1:30AM  comments&structure    wrote comments, indented and fixed some minor bugs in code
+13/07/19  12PM       4PM     testing and debugging debugged minor errors and added all test scripts and rechecked code. cleaned and ready to submit!

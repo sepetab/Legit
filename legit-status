@@ -1,0 +1,178 @@
+#!/bin/dash
+
+#Error checking for the existance of a legit directory
+if ! test -d .legit
+then
+    echo "legit-status: error: no .legit directory containing legit repository exists"
+    exit 1
+fi
+
+#Getting number of commits
+cd ./.legit/commits
+nocommits=$(ls -l| wc -l)
+nocommits=$((nocommits-2))
+latestcommit=$((nocommits-1))
+cd ../..
+
+#Error to print if there are no commits yet
+if test $nocommits -eq 0
+then
+    echo "legit-status: error: your repository does not have any commits yet"
+    exit 1
+fi    
+
+#removing if there is an unlikely resemling file called leg-sta in my legit
+#directory and creating it in the next line
+rm ./.legit/leg-sta.txt > /dev/null 2>&1
+touch ./.legit/leg-sta.txt
+
+#For files in current directory
+for file in *
+do
+    #If there are any files in it
+    exist=$(ls | wc -l)
+    if ! test $exist -eq 0
+    then
+        #If the $file is really a file
+        if test -f "$file"
+        then
+            echo "$file" | egrep -v '^[A-Za-z0-9._-]+$' > /dev/null 2>&1
+            #if filename is valid
+            if ! test "$?" -eq 0
+            then
+                #append it to the created leg-sta.txt
+                echo "$file" >> ./.legit/leg-sta.txt    
+            fi                
+        fi
+    fi
+done
+
+#Like above,add all the valid files in the index directory to leg-sta.txt
+for indfile in ./.legit/index/*
+do
+    exist=$(ls ./.legit/index/ | wc -l)
+    if ! test $exist -eq 0
+    then
+        indfile=$(echo "$indfile" | sed "s/.\/.legit\/index\///")
+        if test -f "$indfile"
+        then
+            echo "$indfile" >> ./.legit/leg-sta.txt
+        fi
+    fi    
+done
+
+#Finally, add all the valid files in the commit directory to leg-sta.txt 
+for comfile in ./.legit/commits/commit-"$latestcommit"/*
+do
+    exist=$(ls ./.legit/commits/commit-"$latestcommit" | wc -l)
+    if ! test $exist -eq 0
+    then       
+        comfile=$(echo "$comfile" | sed "s/.\/.legit\/commits\/commit-$latestcommit\///")
+        if test -f ./.legit/commits/commit-"$latestcommit"/"$comfile"  
+        then
+            echo "$comfile" >> ./.legit/leg-sta.txt
+        fi
+    fi    
+          
+done
+
+#The code below gets rid of repeated files and sorts them alphabetically
+cat ./.legit/leg-sta.txt | sort -f | uniq > .legit/tmp
+mv .legit/tmp ./.legit/leg-sta.txt
+
+#Reading lines from leg-sta.txt using "while do done < $file" format
+while read line
+do
+    #if its in current directory  
+    if test -f "$line"
+    then
+        index_ch=0
+        commit_ch=0
+        if test -f ./.legit/index/"$line"
+        then
+            #updated to 1 if the file also exists in the index
+            index_ch=1
+        fi        
+        if test -f ./.legit/commits/commit-"$latestcommit"/"$line"
+        then
+            #updated to 1 if the file also exists in the 
+            commit_ch=1
+        fi
+        
+        #if its not in the index, untracked straightaway
+        if test $index_ch -eq 0
+        then
+            echo "$line" - untracked
+        #in index but not in commits    
+        elif test $commit_ch -eq 0 -a $index_ch -eq 1
+        then
+            echo "$line" - added to index
+        #if its present in both index and commit    
+        elif test $commit_ch -eq 1 -a $index_ch -eq 1
+        then
+            ind_com=1
+            ind_dir=1
+            diff ./.legit/index/"$line" ./.legit/commits/"commit-$latestcommit"/"$line" > /dev/null 2>&1
+            if test "$?" -eq 0
+            then
+                #updated to zero if no differences between file in index and commit 
+                ind_com=0
+            fi    
+            
+            diff ./.legit/index/"$line" ./"$line" > /dev/null 2>&1
+            if test "$?" -eq 0
+            then
+                #updated to zero if no differences between file in index and current directory 
+                ind_dir=0
+            fi 
+            #if no differences in commits, index and directory  
+            if test $ind_com -eq 0 -a $ind_dir -eq 0
+            then
+                echo ""$line" - same as repo"
+            #all three different  
+            elif test $ind_com -eq 1 -a $ind_dir -eq 1
+            then
+                echo ""$line" - file changed, different changes staged for commit"
+            #index and commit same     
+            elif test $ind_com -eq 0
+            then
+                echo ""$line" - file changed, changes not staged for commit"
+            #index and current directory same    
+            elif test $ind_dir -eq 0
+            then 
+                echo  ""$line" - file changed, changes staged for commit"
+            fi                   
+        fi
+        #revaluing the flags
+        index_ch=0
+        commit_ch=0   
+    fi
+    
+    #Tests if the file is in the index but is not in the directory
+    if test -f ./.legit/index/"$line"      
+    then
+        if ! test -f "$line"
+        then
+            echo "$line - file deleted"
+        fi
+    fi
+    
+    #Tests if the file is in the commits but not in index or directory
+    if test -f ./.legit/commits/commit-$latestcommit/"$line"
+    then
+    if ! test -f "$line"  
+        then
+            if ! test -f ./.legit/index/"$line"
+            then
+                echo ""$line" - deleted"
+            fi
+        fi
+    fi        
+done < ./.legit/leg-sta.txt
+
+
+
+
+
+
+
